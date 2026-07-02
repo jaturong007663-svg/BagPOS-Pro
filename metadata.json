@@ -1,0 +1,6 @@
+{
+  "name": "BagPOS Pro",
+  "description": "ระบบขายกระเป๋าและจัดการสต๊อก (POS & Inventory for Bag Shop)",
+  "requestFramePermissions": ["bluetooth"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
