@@ -1,0 +1,88 @@
+{
+  "collections": [
+    {
+      "name": "bags",
+      "fields": {
+        "id": "string",
+        "name": "string",
+        "price": "number",
+        "cost": "number",
+        "basePrice": "number",
+        "shippingFee": "number",
+        "shippingId": "string",
+        "storeId": "string",
+        "image": "string",
+        "images": "array<string>",
+        "productUrl": "string?",
+        "productUrl2": "string?",
+        "category": "string?",
+        "variants": "array<map>"
+      }
+    },
+    {
+      "name": "transactions",
+      "fields": {
+        "id": "string",
+        "date": "string",
+        "marketId": "string",
+        "items": "array<map>",
+        "total": "number",
+        "discount": "number?"
+      }
+    },
+    {
+      "name": "claims",
+      "fields": {
+        "id": "string",
+        "date": "string",
+        "productId": "string",
+        "reason": "string",
+        "image": "string",
+        "status": "string"
+      }
+    },
+    {
+      "name": "expenses",
+      "fields": {
+        "id": "string",
+        "date": "string",
+        "rent": "number",
+        "utilities": "number",
+        "wages": "number",
+        "other": "number",
+        "note": "string"
+      }
+    },
+    {
+      "name": "shippings",
+      "fields": {
+        "id": "string",
+        "name": "string",
+        "avgDays": "number",
+        "damageRate": "string",
+        "costPerKg": "number"
+      }
+    },
+    {
+      "name": "stores",
+      "fields": {
+        "id": "string",
+        "name": "string",
+        "rating": "number",
+        "totalOrders": "number",
+        "claimCount": "number"
+      }
+    },
+    {
+      "name": "restockOrders",
+      "fields": {
+        "id": "string",
+        "date": "string",
+        "totalPairs": "number",
+        "totalCost": "number",
+        "shippingFee": "number",
+        "items": "array<map>"
+      }
+    }
+  ]
+}
