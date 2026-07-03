@@ -3,6 +3,7 @@ import { useAppContext } from '../AppContext';
 import { ShoppingBag, Plus, Minus, Trash2, Scan, MapPin, ShoppingCart, Check, Bluetooth, Printer } from 'lucide-react';
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import { MARKETS } from '../types';
+import toast from 'react-hot-toast';
 
 export default function Pos() {
   const { bags, cart, addToCart, removeFromCart, updateCartQuantity, checkout, currentMarket, setCurrentMarket } = useAppContext();
@@ -44,9 +45,9 @@ export default function Pos() {
       }
       if (foundVariant && foundProduct) {
         addToCart(foundProduct, foundVariant);
-        alert(`✅ เพิ่ม ${foundProduct.name} ลงตะกร้าแล้ว`);
+        toast(`✅ เพิ่ม ${foundProduct.name} ลงตะกร้าแล้ว`);
       } else {
-        alert(`❌ ไม่พบรหัสบาร์โค้ดสินค้าในระบบ: ${scannedCode}`);
+        toast(`❌ ไม่พบรหัสบาร์โค้ดสินค้าในระบบ: ${scannedCode}`);
       }
       setScannedCode(null);
     }
@@ -74,7 +75,7 @@ export default function Pos() {
 
   const handleCheckout = () => {
     if (!currentMarket) {
-      alert("กรุณาเลือกตลาด/ช่องทางขายก่อนครับ");
+      toast("กรุณาเลือกตลาด/ช่องทางขายก่อนครับ");
       return;
     }
     const sale = checkout(discount);
@@ -95,16 +96,16 @@ export default function Pos() {
       });
       const server = await device.gatt.connect();
       setPrinterDevice(server);
-      alert("✅ เชื่อมต่อเครื่องพิมพ์บลูทูธสำเร็จ!");
+      toast("✅ เชื่อมต่อเครื่องพิมพ์บลูทูธสำเร็จ!");
     } catch (error) {
       console.error("Bluetooth error:", error);
-      alert("❌ ไม่สามารถเชื่อมต่อกับเครื่องพิมพ์ได้");
+      toast("❌ ไม่สามารถเชื่อมต่อกับเครื่องพิมพ์ได้");
     }
   };
 
   const printReceipt = async (saleData: any) => {
     if (!printerDevice || !printerDevice.connected) {
-      alert("เครื่องพิมพ์หลุดการเชื่อมต่อ กรุณาเชื่อมต่อใหม่");
+      toast("เครื่องพิมพ์หลุดการเชื่อมต่อ กรุณาเชื่อมต่อใหม่");
       setPrinterDevice(null);
       return;
     }
@@ -152,25 +153,25 @@ export default function Pos() {
       }
     } catch (error) {
       console.error("Print error:", error);
-      alert("❌ เกิดข้อผิดพลาดขณะพิมพ์ใบเสร็จ");
+      toast("❌ เกิดข้อผิดพลาดขณะพิมพ์ใบเสร็จ");
     }
     setIsPrinting(false);
   };
 
   return (
-    <div className="flex h-full bg-gray-50 relative flex-col md:flex-row">
-      <div className="flex-1 p-4 md:p-6 overflow-y-auto pb-28 md:pb-6">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 space-y-4 md:space-y-0">
+    <div className="flex h-full bg-gray-50 relative flex-col lg:flex-row">
+      <div className="flex-1 p-4 lg:p-6 overflow-y-auto pb-40 lg:pb-6">
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 space-y-4 lg:space-y-0">
           <h2 className="text-2xl font-bold text-gray-800">หน้าการขาย (POS)</h2>
-          <div className="flex items-center space-x-2 w-full md:w-auto">
+          <div className="flex items-center space-x-2 w-full lg:w-auto">
             <button 
               onClick={() => setIsScannerOpen(true)}
-              className="bg-slate-800 hover:bg-slate-700 text-white p-2 md:px-4 rounded-lg flex items-center shadow-sm font-medium transition-colors flex-1 justify-center md:flex-none"
+              className="bg-slate-800 hover:bg-slate-700 text-white p-2 lg:px-4 rounded-lg flex items-center shadow-sm font-medium transition-colors flex-1 justify-center lg:flex-none"
             >
-              <Scan size={20} className="md:mr-2" />
-              <span className="hidden md:inline">สแกนบาร์โค้ด</span>
+              <Scan size={20} className="lg:mr-2" />
+              <span className="hidden lg:inline">สแกนบาร์โค้ด</span>
             </button>
-            <div className="flex items-center space-x-2 bg-white p-2 rounded-lg shadow-sm border flex-1 md:flex-none">
+            <div className="flex items-center space-x-2 bg-white p-2 rounded-lg shadow-sm border flex-1 lg:flex-none">
               <MapPin size={20} className="text-blue-500" />
               <select 
                 value={currentMarket} 
@@ -269,7 +270,7 @@ export default function Pos() {
         </div>
       </div>
 
-      <div className="hidden md:flex w-full md:w-96 bg-white border-l shadow-xl flex-col h-full z-10 relative">
+      <div className="hidden lg:flex w-full lg:w-96 bg-white border-l shadow-xl flex-col h-full z-10 relative">
         <div className="p-4 border-b bg-gray-50">
           <h3 className="text-lg font-bold text-gray-800 flex items-center">
             <ShoppingCart size={20} className="mr-2 text-blue-600" />
@@ -284,8 +285,8 @@ export default function Pos() {
               <p>ยังไม่มีสินค้าในตะกร้า</p>
             </div>
           ) : (
-            cart.map((item, idx) => (
-              <div key={idx} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-100">
+            cart.map((item) => (
+              <div key={item.variantId} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-100">
                 <div className="flex-1 overflow-hidden">
                   <p className="font-bold text-gray-800 text-sm truncate">{item.name}</p>
                   <p className="text-xs text-gray-500">สี{item.color}</p>
@@ -406,7 +407,7 @@ export default function Pos() {
       )}
 
       {/* Mobile Cart Button */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t p-4 flex justify-between items-center z-30 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.1)]">
+      <div className="lg:hidden fixed bottom-16 left-0 right-0 bg-white border-t p-4 flex justify-between items-center z-30 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.1)]">
         <div>
           <p className="text-sm text-gray-500 font-medium">ยอดรวม ({totalItems} ชิ้น)</p>
           <p className="font-bold text-xl text-gray-900">฿{cartTotal.toLocaleString()}</p>
@@ -421,7 +422,7 @@ export default function Pos() {
 
       {/* Mobile Cart Modal */}
       {isMobileCartOpen && (
-        <div className="md:hidden fixed inset-0 bg-black/60 z-50 flex flex-col justify-end">
+        <div className="lg:hidden fixed inset-0 bg-black/60 z-50 flex flex-col justify-end">
           <div className="bg-white w-full h-[80vh] rounded-t-3xl flex flex-col overflow-hidden animate-in slide-in-from-bottom">
             <div className="p-4 border-b flex justify-between items-center bg-gray-50">
               <h3 className="font-bold text-lg flex items-center"><ShoppingCart size={20} className="mr-2 text-blue-600"/> ตะกร้าสินค้า</h3>
@@ -432,8 +433,8 @@ export default function Pos() {
               {cart.length === 0 ? (
                 <p className="text-center text-gray-400 mt-10">ไม่มีสินค้าในตะกร้า</p>
               ) : (
-                cart.map((item, idx) => (
-                  <div key={idx} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border">
+                cart.map((item) => (
+                  <div key={item.variantId} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border">
                     <div className="flex-1">
                       <p className="font-bold text-sm truncate">{item.name}</p>
                       <p className="text-xs text-gray-500">สี{item.color}</p>

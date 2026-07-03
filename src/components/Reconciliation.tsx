@@ -102,7 +102,7 @@ export default function Reconciliation() {
   const actualPaidNum = Number(totalPaid) || 0;
 
   return (
-    <div className="p-6 max-w-5xl mx-auto space-y-6 h-full overflow-y-auto">
+    <div className="p-4 md:p-6 max-w-5xl mx-auto space-y-6 h-full overflow-y-auto pb-24 lg:pb-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
         <h2 className="text-2xl font-bold text-gray-800 flex items-center">
           <Calculator className="mr-3 text-blue-600" size={28} /> คำนวณต้นทุนจริง (Cost Calculator)

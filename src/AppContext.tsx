@@ -1,7 +1,15 @@
-import React, { createContext, useContext, useState, ReactNode, useEffect, useMemo } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { Bag, CartItem, Transaction, Claim, Expense, Shipping, ChinaStore, RestockOrder, MARKETS } from './types';
+import { collection, onSnapshot, doc, setDoc, deleteDoc, writeBatch } from 'firebase/firestore';
+import { db } from './lib/firebase';
+
+import { User, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
+import { auth } from './lib/firebase';
 
 interface AppContextType {
+  user: User | null;
+  signIn: () => void;
+  logOut: () => void;
   bags: Bag[];
   cart: CartItem[];
   transactions: Transaction[];
@@ -27,59 +35,102 @@ interface AppContextType {
   setBags: React.Dispatch<React.SetStateAction<Bag[]>>;
   setChinaStores: React.Dispatch<React.SetStateAction<ChinaStore[]>>;
   clearCart: () => void;
+  setCart: React.Dispatch<React.SetStateAction<CartItem[]>>;
+  deleteTransaction: (id: string) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider = ({ children }: { children: ReactNode }) => {
-  const [bags, setBags] = useState<Bag[]>(() => {
-    const saved = localStorage.getItem('pos_bags');
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [bags, setBags] = useState<Bag[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [transactions, setTransactions] = useState<Transaction[]>(() => {
-    const saved = localStorage.getItem('pos_transactions');
-    return saved ? JSON.parse(saved) : [];
-  });
-  const [claims, setClaims] = useState<Claim[]>(() => {
-    const saved = localStorage.getItem('pos_claims');
-    return saved ? JSON.parse(saved) : [];
-  });
-  const [expenses, setExpenses] = useState<Expense[]>(() => {
-    const saved = localStorage.getItem('pos_expenses');
-    return saved ? JSON.parse(saved) : [];
-  });
-  const [shippings, setShippings] = useState<Shipping[]>(() => {
-    const saved = localStorage.getItem('pos_shippings');
-    return saved ? JSON.parse(saved) : [];
-  });
-  const [chinaStores, setChinaStores] = useState<ChinaStore[]>(() => {
-    const saved = localStorage.getItem('pos_chinaStores');
-    return saved ? JSON.parse(saved) : [];
-  });
-  const [restocks, setRestocks] = useState<RestockOrder[]>(() => {
-    const saved = localStorage.getItem('pos_restocks');
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [claims, setClaims] = useState<Claim[]>([]);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [shippings, setShippings] = useState<Shipping[]>([]);
+  const [chinaStores, setChinaStores] = useState<ChinaStore[]>([]);
+  const [restocks, setRestocks] = useState<RestockOrder[]>([]);
   const [currentMarket, setCurrentMarket] = useState<string>('');
+  const [user, setUser] = useState<User | null>(null);
+  const [loadingAuth, setLoadingAuth] = useState(true);
 
   useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (u) => {
+      setUser(u);
+      setLoadingAuth(false);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const signIn = async () => {
+    const provider = new GoogleAuthProvider();
+    try {
+      await signInWithPopup(auth, provider);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const logOut = async () => {
+    await signOut(auth);
+  };
+
+
+  useEffect(() => {
+    if (!user) {
+      setBags([]);
+      setTransactions([]);
+      setClaims([]);
+      setExpenses([]);
+      setShippings([]);
+      setChinaStores([]);
+      setRestocks([]);
+      return;
+    }
+
     const today = new Date().getDay();
     const market = MARKETS.find(m => m.day === today);
     if (market) setCurrentMarket(market.id);
-  }, []);
 
-  useEffect(() => localStorage.setItem('pos_bags', JSON.stringify(bags)), [bags]);
-  useEffect(() => localStorage.setItem('pos_transactions', JSON.stringify(transactions)), [transactions]);
-  useEffect(() => localStorage.setItem('pos_claims', JSON.stringify(claims)), [claims]);
-  useEffect(() => localStorage.setItem('pos_expenses', JSON.stringify(expenses)), [expenses]);
-  useEffect(() => localStorage.setItem('pos_shippings', JSON.stringify(shippings)), [shippings]);
-  useEffect(() => localStorage.setItem('pos_chinaStores', JSON.stringify(chinaStores)), [chinaStores]);
-  useEffect(() => localStorage.setItem('pos_restocks', JSON.stringify(restocks)), [restocks]);
+    const unsubs = [
+      onSnapshot(collection(db, 'users', user.uid, 'bags'), 
+        (snap) => {
+          console.log('Bags updated:', snap.docs.length);
+          setBags(snap.docs.map(d => d.data() as Bag));
+        },
+        (error) => console.error('Error fetching bags:', error)
+      ),
+      onSnapshot(collection(db, 'users', user.uid, 'transactions'), 
+        (snap) => setTransactions(snap.docs.map(d => d.data() as Transaction).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())),
+        (error) => console.error('Error fetching transactions:', error)
+      ),
+      onSnapshot(collection(db, 'users', user.uid, 'claims'), 
+        (snap) => setClaims(snap.docs.map(d => d.data() as Claim).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())),
+        (error) => console.error('Error fetching claims:', error)
+      ),
+      onSnapshot(collection(db, 'users', user.uid, 'expenses'), 
+        (snap) => setExpenses(snap.docs.map(d => d.data() as Expense)),
+        (error) => console.error('Error fetching expenses:', error)
+      ),
+      onSnapshot(collection(db, 'users', user.uid, 'shippings'), 
+        (snap) => setShippings(snap.docs.map(d => d.data() as Shipping)),
+        (error) => console.error('Error fetching shippings:', error)
+      ),
+      onSnapshot(collection(db, 'users', user.uid, 'stores'), 
+        (snap) => setChinaStores(snap.docs.map(d => d.data() as ChinaStore)),
+        (error) => console.error('Error fetching stores:', error)
+      ),
+      onSnapshot(collection(db, 'users', user.uid, 'restockOrders'), 
+        (snap) => setRestocks(snap.docs.map(d => d.data() as RestockOrder).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())),
+        (error) => console.error('Error fetching restockOrders:', error)
+      ),
+    ];
+    return () => unsubs.forEach(unsub => unsub());
+  }, [user]);
 
-  const addBag = (bag: Bag) => setBags([...bags, bag]);
-  const updateBag = (updatedBag: Bag) => setBags(bags.map(b => b.id === updatedBag.id ? updatedBag : b));
-  const deleteBag = (id: string) => setBags(bags.filter(b => b.id !== id));
+  const addBag = (bag: Bag) => setDoc(doc(db, 'users', user?.uid || 'temp', 'bags', bag.id), bag);
+  const updateBag = (updatedBag: Bag) => setDoc(doc(db, 'users', user?.uid || 'temp', 'bags', updatedBag.id), updatedBag);
+  const deleteBag = (id: string) => deleteDoc(doc(db, 'users', user?.uid || 'temp', 'bags', id));
 
   const addToCart = (bag: Bag, variant: { id: string, color: string, stock: number }) => {
     if (variant.stock <= 0) return;
@@ -125,13 +176,21 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     const subtotal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
     const total = Math.max(0, subtotal - discount);
     
-    const updatedBags = bags.map(b => {
+    const batch = writeBatch(db);
+
+    bags.forEach(b => {
+      let needsUpdate = false;
       let updatedVariants = b.variants.map(v => {
         const cartItem = cart.find(c => c.variantId === v.id);
-        if (cartItem) return { ...v, stock: v.stock - cartItem.qty };
+        if (cartItem) {
+          needsUpdate = true;
+          return { ...v, stock: v.stock - cartItem.qty };
+        }
         return v;
       });
-      return { ...b, variants: updatedVariants };
+      if (needsUpdate) {
+        batch.set(doc(db, 'users', user?.uid || 'temp', 'bags', b.id), { ...b, variants: updatedVariants });
+      }
     });
 
     const newTransaction: Transaction = {
@@ -143,40 +202,74 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       discount,
     };
 
-    setBags(updatedBags);
-    setTransactions([newTransaction, ...transactions]);
-    setCart([]);
+    batch.set(doc(db, 'users', user?.uid || 'temp', 'transactions', newTransaction.id), newTransaction);
+    batch.commit().then(() => setCart([]));
+
     return newTransaction;
   };
 
-  const addClaim = (claim: Claim) => setClaims([claim, ...claims]);
+  const addClaim = (claim: Claim) => setDoc(doc(db, 'users', user?.uid || 'temp', 'claims', claim.id), claim);
 
   const saveExpense = (expense: Expense) => {
-    const existingIndex = expenses.findIndex(e => e.date === expense.date);
-    if (existingIndex >= 0) {
-      const newExpArr = [...expenses];
-      newExpArr[existingIndex] = expense;
-      setExpenses(newExpArr);
-    } else {
-      setExpenses([...expenses, expense]);
+    // Generate id if not present, but it's typically required
+    if (!expense.id) {
+      expense.id = 'e' + Date.now().toString();
+    }
+    setDoc(doc(db, 'users', user?.uid || 'temp', 'expenses', expense.id), expense);
+  };
+
+  const addRestockOrder = (order: RestockOrder) => setDoc(doc(db, 'users', user?.uid || 'temp', 'restockOrders', order.id), order);
+  const updateRestockOrder = (updatedOrder: RestockOrder) => setDoc(doc(db, 'users', user?.uid || 'temp', 'restockOrders', updatedOrder.id), updatedOrder);
+    const deleteRestockOrder = (id: string) => {
+    const order = restocks.find(r => r.id === id);
+    if (order) {
+      // Try to revert stock
+      order.items.forEach(item => {
+        const bag = bags.find(b => b.name === item.name);
+        if (bag && item.variants) {
+          const updatedVariants = bag.variants.map(bagVar => {
+            const orderVar = item.variants?.find(v => v.color === bagVar.color);
+            if (orderVar) {
+              // Revert by subtracting the restock amount, ensure we don't go below 0
+              return { ...bagVar, stock: Math.max(0, (bagVar.stock || 0) - orderVar.stock) };
+            }
+            return bagVar;
+          });
+          updateBag({ ...bag, variants: updatedVariants });
+        }
+      });
+      deleteDoc(doc(db, 'users', user?.uid || 'temp', 'restockOrders', id));
+    }
+  };
+  
+    const deleteTransaction = (id: string) => {
+    const transaction = transactions.find(t => t.id === id);
+    if (transaction) {
+      // Revert stock
+      transaction.items.forEach(item => {
+        const bag = bags.find(b => b.id === item.productId);
+        if (bag) {
+          const updatedVariants = bag.variants.map(v => 
+            v.id === item.variantId ? { ...v, stock: (v.stock || 0) + item.qty } : v
+          );
+          updateBag({ ...bag, variants: updatedVariants });
+        }
+      });
+      deleteDoc(doc(db, 'users', user?.uid || 'temp', 'transactions', id));
     }
   };
 
-  const addRestockOrder = (order: RestockOrder) => setRestocks([order, ...restocks]);
-  const updateRestockOrder = (updatedOrder: RestockOrder) => {
-    setRestocks(restocks.map(r => r.id === updatedOrder.id ? updatedOrder : r));
-  };
-  const deleteRestockOrder = (id: string) => {
-    setRestocks(restocks.filter(r => r.id !== id));
-  };
   const clearCart = () => setCart([]);
+
+  if (loadingAuth) return <div className="flex h-screen items-center justify-center text-gray-500">กำลังตรวจสอบสิทธิ์...</div>;
 
   return (
     <AppContext.Provider value={{
+      user, signIn, logOut,
       bags, cart, transactions, claims, expenses, shippings, chinaStores, restocks,
       currentMarket, setCurrentMarket, addBag, updateBag, deleteBag,
       addToCart, removeFromCart, updateCartQuantity, checkout,
-      addClaim, saveExpense, addRestockOrder, updateRestockOrder, deleteRestockOrder, setBags, setChinaStores, clearCart
+      addClaim, saveExpense, addRestockOrder, updateRestockOrder, deleteRestockOrder, deleteTransaction, setBags, setChinaStores, clearCart, setCart
     }}>
       {children}
     </AppContext.Provider>
@@ -190,3 +283,4 @@ export const useAppContext = () => {
   }
   return context;
 };
+

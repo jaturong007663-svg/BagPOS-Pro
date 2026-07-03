@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAppContext } from '../AppContext';
 import { Wallet, Check, Package } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 export default function Ledger() {
   const { transactions = [], restocks = [], expenses = [], saveExpense, bags = [] } = useAppContext();
@@ -48,11 +49,11 @@ export default function Ledger() {
       note: expenseForm.note
     };
     saveExpense(newExpense);
-    alert('บันทึกรายจ่ายเรียบร้อย!');
+    toast('บันทึกรายจ่ายเรียบร้อย!');
   };
 
   return (
-    <div className="p-6 max-w-5xl mx-auto space-y-6 overflow-y-auto h-full">
+    <div className="p-4 md:p-6 max-w-5xl mx-auto space-y-6 overflow-y-auto h-full pb-24 lg:pb-6">
       <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center">
         <Wallet className="mr-3 text-blue-600" size={28} /> บัญชีรายรับ-รายจ่าย (Daily Ledger)
       </h2>
@@ -107,7 +108,7 @@ export default function Ledger() {
         <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm col-span-1 lg:col-span-2 space-y-6">
           <div>
             <h3 className="font-bold text-red-700 mb-4 text-lg">บันทึกค่าใช้จ่ายประจำวัน (หน้าแผง)</h3>
-            <div className="grid grid-cols-2 gap-4 mb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
               <div>
                 <label className="block text-sm font-medium text-gray-600 mb-1">ค่าเช่าที่ / ค่าแผง</label>
                 <input type="number" value={expenseForm.rent} className="w-full p-3 border rounded-xl outline-none focus:border-red-400 bg-gray-50" placeholder="0" onChange={e => setExpenseForm({ ...expenseForm, rent: e.target.value })} />
@@ -135,7 +136,7 @@ export default function Ledger() {
           <div className="border-t pt-4">
             <h3 className="font-bold text-gray-800 mb-3 flex items-center text-sm">
               <Package className="mr-2 text-orange-500" size={18} />
-              ประวัติบิลสั่งซื้อของเติมสต๊อกในวันนี้ ({dailyRestocks.length} บิล)
+              บิลสั่งซื้อของเข้าสต๊อก (เฉพาะวันที่เลือก) ({dailyRestocks.length} บิล)
             </h3>
             {dailyRestocks.length > 0 ? (
               <div className="space-y-3 max-h-60 overflow-y-auto">

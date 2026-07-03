@@ -174,7 +174,7 @@ export default function Dashboard() {
   const years = Array.from({length: 5}, (_, i) => new Date().getFullYear() - i);
 
   return (
-    <div className="p-6 h-full overflow-y-auto bg-gray-50">
+    <div className="p-4 md:p-6 h-full overflow-y-auto bg-gray-50 pb-24 lg:pb-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <h2 className="text-2xl font-bold text-gray-800">ภาพรวมสถิติ (Dashboard)</h2>
         
@@ -362,8 +362,8 @@ export default function Dashboard() {
         {/* Recent Transactions List */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col h-[460px]">
           <h3 className="text-lg font-bold text-gray-800 mb-4">รายการขายล่าสุด (ในรอบที่เลือก)</h3>
-          <div className="overflow-y-auto flex-1 pr-2">
-            <table className="w-full text-left">
+          <div className="overflow-y-auto overflow-x-auto flex-1 pr-2">
+            <table className="w-full text-left whitespace-nowrap min-w-[400px]">
               <thead className="sticky top-0 bg-white shadow-sm z-10">
                 <tr className="text-sm text-gray-500 border-b border-gray-100">
                   <th className="pb-3 font-medium bg-white">ตลาด</th>

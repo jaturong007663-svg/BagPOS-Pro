@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAppContext } from '../AppContext';
 import { Bag } from '../types';
-import { Plus, Edit2, Trash2, X, Upload, ShoppingBag, Scan, Printer, Check, ImageIcon, ChevronLeft, ChevronRight, Grid, List, PackagePlus, Wallet } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Upload, ShoppingBag, Scan, Printer, Check, ImageIcon, ChevronLeft, ChevronRight, Grid, List, PackagePlus, Wallet, ExternalLink } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 export default function Inventory() {
   const { bags, setBags, addBag, updateBag, deleteBag, chinaStores, shippings, restocks, addRestockOrder, setChinaStores } = useAppContext();
@@ -91,7 +92,7 @@ export default function Inventory() {
         }));
         setNewVariants(item.variants.map((v: any) => ({ ...v, stock: String(v.stock) })));
         setIsAdding(true); 
-        alert(`🚀 นำเข้าข้อมูล "${item.name}" จาก 1688 สำเร็จ!`);
+        toast(`🚀 นำเข้าข้อมูล "${item.name}" จาก 1688 สำเร็จ!`);
       }
     };
     window.addEventListener('message', handleExtensionMessage);
@@ -306,11 +307,21 @@ export default function Inventory() {
       }
     }
 
-    setBags(updatedBags);
+    // Update in Firebase
+    for (const bag of updatedBags) {
+      if (bags.find(b => b.id === bag.id)) {
+        updateBag(bag);
+      } else {
+        addBag(bag);
+      }
+    }
+
+    // Note: setBags is handled by the snapshot listener, but we can do it locally for immediate effect
+    // setBags(updatedBags);
     addRestockOrder(newRestockOrder);
     setRestockCart([]);
     setGlobalShippingFee('');
-    alert("✅ บันทึกนำเข้าสต๊อกและคำนวณต้นทุนเรียบร้อยแล้ว!");
+    toast("✅ บันทึกนำเข้าสต๊อกและคำนวณต้นทุนเรียบร้อยแล้ว!");
   };
 
   const printBarcode = async () => {
@@ -325,7 +336,7 @@ export default function Inventory() {
         activePrinter = await device.gatt.connect();
         setPrinterDevice(activePrinter);
       } catch (error) {
-        alert("❌ กรุณาเชื่อมต่อเครื่องพิมพ์ก่อนพิมพ์บาร์โค้ด");
+        toast("❌ กรุณาเชื่อมต่อเครื่องพิมพ์ก่อนพิมพ์บาร์โค้ด");
         return;
       }
     }
@@ -363,12 +374,12 @@ export default function Inventory() {
       }
     } catch (error) {
       console.error("Print barcode error:", error);
-      alert("❌ เกิดข้อผิดพลาดขณะพิมพ์บาร์โค้ด");
+      toast("❌ เกิดข้อผิดพลาดขณะพิมพ์บาร์โค้ด");
     }
   };
 
   return (
-    <div ref={inventoryContainerRef} className="p-6 h-full overflow-y-auto bg-gray-50">
+    <div ref={inventoryContainerRef} className="p-4 md:p-6 h-full overflow-y-auto bg-gray-50 pb-24 lg:pb-6">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-gray-800">จัดการสต๊อกสินค้า (Inventory)</h2>
         <button 
@@ -555,7 +566,7 @@ export default function Inventory() {
                           }
                         }} className="hidden" />
                       </label>
-                      <div className="flex-1 grid grid-cols-2 gap-3 w-full">
+                      <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
                         <input type="text" placeholder="ระบุสี (เช่น ดำ)" value={v.color} onChange={e => {
                           const newArr = [...newVariants]; newArr[index].color = e.target.value; setNewVariants(newArr);
                         }} className="w-full p-2.5 border border-gray-200 rounded-lg min-w-0 focus:ring-2 focus:ring-blue-500 outline-none text-sm" />
@@ -671,7 +682,8 @@ export default function Inventory() {
         </div>
       )}
 
-      <div className="flex gap-2 mb-4 overflow-x-auto pb-2 hide-scrollbar">
+      <div className="sticky top-0 z-10 bg-gray-50 pt-2 pb-2 -mx-4 px-4 lg:-mx-6 lg:px-6 shadow-[0_4px_10px_-4px_rgba(0,0,0,0.05)] border-b border-gray-100 mb-4">
+        <div className="flex gap-2 mb-4 overflow-x-auto pb-2 hide-scrollbar">
         {['all', 'กระเป๋า', 'พวงกุญแจตุ๊กตา'].map((cat) => (
           <button
             key={cat}
@@ -707,11 +719,14 @@ export default function Inventory() {
           </button>
         </div>
       </div>
+      </div>
 
 
       {viewMode === 'list' ? (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-          <table className="w-full text-left">
+        
+        <>
+        <div className="hidden lg:block bg-white rounded-2xl shadow-sm border border-gray-200 overflow-x-auto">
+          <table className="w-full text-left min-w-[800px] whitespace-nowrap">
             <thead className="bg-gray-50 border-b">
               <tr>
                 <th className="p-4 font-semibold text-gray-600">รูป/ชื่อสินค้า</th>
@@ -742,15 +757,15 @@ export default function Inventory() {
                       </div>
                     )}
                     <div>
-                      <span className="font-medium text-gray-800 block">
+                      <span className="font-medium text-gray-800 block whitespace-normal min-w-[150px] max-w-[250px]">
                         {p.name}
                         {p.productUrl && (
-                          <a href={p.productUrl} target="_blank" rel="noopener noreferrer" className="ml-2 text-blue-500 hover:underline text-xs">
+                          <a href={p.productUrl} target="_blank" rel="noopener noreferrer" className="ml-2 text-blue-500 hover:underline text-xs inline-block">
                             (ลิ้งค์ 1)
                           </a>
                         )}
                         {p.productUrl2 && (
-                          <a href={p.productUrl2} target="_blank" rel="noopener noreferrer" className="ml-2 text-indigo-500 hover:underline text-xs">
+                          <a href={p.productUrl2} target="_blank" rel="noopener noreferrer" className="ml-2 text-indigo-500 hover:underline text-xs inline-block">
                             (ลิ้งค์ 2)
                           </a>
                         )}
@@ -827,6 +842,115 @@ export default function Inventory() {
             </tbody>
           </table>
         </div>
+        
+        <div className="lg:hidden space-y-4">
+          {bags.filter(p => {
+            const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
+            const matchesCategory = filterCategory === 'all' || (p.category || 'กระเป๋า') === filterCategory;
+            return matchesSearch && matchesCategory;
+          }).map(p => (
+            <div key={p.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 space-y-3">
+              <div className="flex items-start gap-3">
+                {p.image ? (
+                  <img 
+                    src={p.image} 
+                    className="w-16 h-16 rounded-lg object-cover cursor-pointer hover:opacity-80 transition-opacity border border-gray-200 shrink-0" 
+                    onClick={() => { setViewingImageProduct(p); setCurrentImageIndex(0); }}
+                    alt={p.name}
+                  />
+                ) : (
+                  <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center shrink-0 border border-gray-200">
+                    <ImageIcon size={24} className="text-gray-400" />
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-bold text-gray-800 text-sm line-clamp-2">{p.name}</h3>
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    <span className="font-medium text-emerald-600">฿{p.price.toLocaleString()}</span>
+                    <span className="text-gray-400 text-sm">|</span>
+                    <span className="text-xs text-gray-500 pt-0.5">
+                      ทุน: ฿{p.cost || 0}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    {p.productUrl && (
+                      <a href={p.productUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline text-xs inline-block bg-blue-50 px-2 py-0.5 rounded-full">
+                        ลิ้งค์ 1
+                      </a>
+                    )}
+                    {p.productUrl2 && (
+                      <a href={p.productUrl2} target="_blank" rel="noopener noreferrer" className="text-indigo-500 hover:underline text-xs inline-block bg-indigo-50 px-2 py-0.5 rounded-full">
+                        ลิ้งค์ 2
+                      </a>
+                    )}
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-gray-50 rounded-lg p-2">
+                <div className="flex justify-between items-center mb-2 px-1">
+                  <span className="text-xs font-semibold text-gray-600">รายละเอียดสี</span>
+                  <span className="text-xs font-bold text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full">
+                    รวม: {p.variants?.reduce((acc, v) => acc + (v.stock || 0), 0) || 0} ชิ้น
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {p.variants?.map(v => (
+                    <div key={v.id} className="text-xs border border-gray-200 bg-white p-1.5 rounded-md text-gray-600 shadow-sm flex items-center justify-between">
+                      <div className="flex items-center overflow-hidden">
+                        {v.imageUrl ? (
+                          <img 
+                            src={v.imageUrl} 
+                            className="w-5 h-5 rounded object-cover mr-1.5 shrink-0" 
+                            onClick={() => { 
+                              setViewingImageProduct(p); 
+                              const imgs = computeAllImages(p);
+                              const idx = imgs.indexOf(v.imageUrl!);
+                              setCurrentImageIndex(idx >= 0 ? idx : 0); 
+                            }}
+                            alt={v.color}
+                          />
+                        ) : (
+                          <div className="w-5 h-5 bg-gray-100 rounded flex items-center justify-center mr-1.5 shrink-0"><ImageIcon size={10} className="text-gray-400"/></div>
+                        )}
+                        <span className="truncate">{v.color} ({v.stock})</span>
+                      </div>
+                      <button 
+                        onClick={() => setBarcodeModal({ id: v.id, name: p.name, color: v.color, price: p.price })}
+                        className="text-indigo-500 bg-indigo-50 p-1 rounded shrink-0 ml-1"
+                      >
+                        <Scan size={12} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              
+              <div className="flex justify-end space-x-2 pt-1 border-t border-gray-100">
+                <button 
+                  onClick={() => handleEditToRestock(p)}
+                  className="text-indigo-500 bg-indigo-50 hover:bg-indigo-100 py-1.5 px-3 rounded-lg text-xs font-medium flex items-center transition-colors flex-1 justify-center"
+                >
+                  <PackagePlus size={14} className="mr-1" /> สั่งเพิ่ม
+                </button>
+                <button 
+                  onClick={() => setEditingProduct(p)}
+                  className="text-blue-500 bg-blue-50 hover:bg-blue-100 py-1.5 px-3 rounded-lg text-xs font-medium flex items-center transition-colors flex-1 justify-center"
+                >
+                  <Edit2 size={14} className="mr-1" /> แก้ไข
+                </button>
+                <button 
+                  onClick={() => setConfirmDeleteId(p.id)}
+                  className="text-red-500 bg-red-50 hover:bg-red-100 p-1.5 rounded-lg transition-colors"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+        </>
+
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
           {bags.filter(p => {
@@ -987,7 +1111,14 @@ export default function Inventory() {
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">ลิงก์สินค้า 1 (URL)</label>
+                    <div className="flex justify-between items-center mb-1">
+                      <label className="block text-sm font-medium text-gray-700">ลิงก์สินค้า 1 (URL)</label>
+                      {editingProduct.productUrl && (
+                        <a href={editingProduct.productUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:text-blue-800 flex items-center bg-blue-50 px-2 py-0.5 rounded-full">
+                          เปิดลิงก์ <ExternalLink size={12} className="ml-1" />
+                        </a>
+                      )}
+                    </div>
                     <input 
                       type="text" 
                       value={editingProduct.productUrl || ''} 
@@ -997,7 +1128,14 @@ export default function Inventory() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">ลิงก์สินค้า 2 (URL)</label>
+                    <div className="flex justify-between items-center mb-1">
+                      <label className="block text-sm font-medium text-gray-700">ลิงก์สินค้า 2 (URL)</label>
+                      {editingProduct.productUrl2 && (
+                        <a href={editingProduct.productUrl2} target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-600 hover:text-indigo-800 flex items-center bg-indigo-50 px-2 py-0.5 rounded-full">
+                          เปิดลิงก์ <ExternalLink size={12} className="ml-1" />
+                        </a>
+                      )}
+                    </div>
                     <input 
                       type="text" 
                       value={editingProduct.productUrl2 || ''} 
@@ -1105,7 +1243,7 @@ export default function Inventory() {
                         }
                       }} className="hidden" />
                     </label>
-                    <div className="flex-1 grid grid-cols-2 gap-2">
+                    <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2">
                       <input 
                         type="text" 
                         placeholder="ชื่อสี/รุ่น" 
